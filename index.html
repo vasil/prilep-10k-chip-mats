@@ -365,11 +365,23 @@ function draw(follow){
   });
   if (follow) {
     show(cursor);
-    // the sidebar scrolls on its own now, so the highlighted row has to be
-    // brought with it or it walks off the bottom
-    const tr = document.querySelectorAll('#tbl tr.row')[sel];
-    if (tr) tr.scrollIntoView({block:'nearest'});
+    revealRow(document.querySelectorAll('#tbl tr.row')[sel]);
   }
+}
+
+// Bring the highlighted row into view by scrolling the SIDEBAR, never the
+// page. scrollIntoView did this the other way round on a phone, where the
+// sidebar has no scrollbar of its own: it scrolled the document instead and
+// yanked the map off the screen every time the replay crossed a mat.
+function revealRow(tr){
+  if (!tr) return;
+  const box = document.querySelector('.side');
+  if (!box) return;
+  if (box.scrollHeight <= box.clientHeight + 4) return;   // phone: nothing to scroll
+  if (!/auto|scroll/.test(getComputedStyle(box).overflowY)) return;
+  const r = tr.getBoundingClientRect(), b = box.getBoundingClientRect();
+  if (r.top < b.top)          box.scrollTop += r.top - b.top - 8;
+  else if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom + 8;
 }
 
 function show(pos){
