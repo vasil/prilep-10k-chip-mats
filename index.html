@@ -44,12 +44,18 @@ kbd{display:inline-block;padding:2px 8px;border:1px solid var(--line);
 @media (max-width:1000px){
   body{height:auto;overflow:visible}
   .grid{grid-template-columns:1fr;flex:none}
-  #map{height:60vh}
+  #map{height:58vh;flex:none;min-height:300px}
   .side,.leftcol{overflow:visible}
+  /* On a phone the title should be the first thing and the photo the last,
+     so the map and its buttons are a short scroll away, not a long one. */
+  .leftcol{display:flex;flex-direction:column}
+  .shot{order:9;margin:14px 0 0}
+  .keys{display:none}
+  .bar button{flex:1 1 auto}
 }
 /* The map is the page: it runs the full height of the window, so the route
    fills it instead of sitting in a 620 px letterbox. */
-#map{height:100%;min-height:360px;border:1px solid var(--line);border-radius:4px;
+#map{flex:1 1 auto;height:100%;min-height:300px;border:1px solid var(--line);border-radius:4px;
   background:var(--panel)}
 #map:focus{outline:3px solid var(--sel);outline-offset:2px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:4px;
@@ -81,6 +87,21 @@ tr.row{cursor:pointer}
   border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45)}
 .pin.on{background:var(--sel);width:34px;height:34px;font-size:17px}
 .leaflet-container{font:inherit;background:var(--panel)}
+
+/* Phone: everything the keys do has a button, big enough for a thumb. */
+.mapwrap{display:flex;flex-direction:column;min-height:0}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.bar .lbl{font-size:14px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.bar button{font:600 17px/1 inherit;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line);border-bottom-width:2px;border-radius:8px;
+  min-height:46px;min-width:48px;padding:0 13px;cursor:pointer;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.bar button:active{transform:translateY(1px)}
+.bar button.on{background:var(--sel);border-color:var(--sel);color:#1b1206}
+#scrub{width:100%;height:40px;margin:12px 0 0;accent-color:var(--sel);
+  touch-action:pan-y}
+.scrubrow{display:flex;justify-content:space-between;font-size:14px;
+  color:var(--muted);font-variant-numeric:tabular-nums}
 </style></head><body>
 
 <div class="grid">
@@ -91,7 +112,8 @@ tr.row{cursor:pointer}
 </figure>
 <h1>Chip Mats on the Route</h1>
 <div class="sub">The black dot is you. Walk it along the route and the nearest mat is
-selected as you pass. Ten official splits, four physical mats.</div>
+selected as you pass. Ten official splits, four physical mats.
+Drag the slider or tap the buttons under the map &mdash; the keys below do the same thing.</div>
 <div class="keys">
 <div><kbd>Space</kbd> play the race back<br><kbd>1</kbd> &times;1
 <kbd>2</kbd> &times;10 <kbd>3</kbd> &times;60 <kbd>4</kbd> &times;300</div>
@@ -108,7 +130,36 @@ selected as you pass. Ten official splits, four physical mats.</div>
 <div><kbd>Enter</kbd> zoom right in</div>
 </div>
   </div>
+  <div class="mapwrap">
   <div id="map" tabindex="0"></div>
+  <input id="scrub" type="range" min="0" max="1000" step="1" value="0"
+         aria-label="Position on the route">
+  <div class="scrubrow"><span id="sLeft">0.00 km</span><span id="sRight"></span></div>
+  <div class="bar">
+    <button type="button" data-a="back100" aria-label="100 metres back">&#9668;&#9668;</button>
+    <button type="button" data-a="back10" aria-label="10 metres back">&#9668;</button>
+    <button type="button" data-a="play" id="btnPlay">&#9654; Play</button>
+    <button type="button" data-a="fwd10" aria-label="10 metres on">&#9658;</button>
+    <button type="button" data-a="fwd100" aria-label="100 metres on">&#9658;&#9658;</button>
+  </div>
+  <div class="bar">
+    <span class="lbl">Speed</span>
+    <button type="button" data-r="1">&times;1</button>
+    <button type="button" data-r="10">&times;10</button>
+    <button type="button" data-r="60">&times;60</button>
+    <button type="button" data-r="300">&times;300</button>
+    <button type="button" data-a="centre">Centre</button>
+  </div>
+  <div class="bar">
+    <span class="lbl">Mat</span>
+    <button type="button" data-a="prevmat" aria-label="previous mat">&#8592;</button>
+    <button type="button" data-a="nextmat" aria-label="next mat">&#8594;</button>
+    <button type="button" data-a="matback">&minus;5 m</button>
+    <button type="button" data-a="matfwd">+5 m</button>
+    <button type="button" data-a="clock" id="bClock">Clock</button>
+    <button type="button" data-a="dist" id="bDist">Distance</button>
+  </div>
+  </div>
   <div class="side">
     <div class="card" id="here" style="margin-bottom:14px"></div>
     <div class="card" id="card"></div>
@@ -128,6 +179,7 @@ let cursor = 0;   // where he is on the route, driven by left/right
 // where he slowed and stands still for the 6:50 at the bar — the route plays
 // back at his own pace, just wound forward.
 let playing = false, rate = 60, raf = 0, last = 0;
+const scrub = document.getElementById('scrub');
 function posAtTime(sec){
   let lo = 0, hi = tt.length - 1;
   if (sec <= tt[0]) return 0;
@@ -277,6 +329,16 @@ function draw(follow){
     '<dt>Speed there</dt><dd>'+cV.toFixed(2)+' m/s</dd>'+
     '<dt>Replay</dt><dd>'+(playing ? '▶ playing' : '❙❙ paused')+' &times;'+rate+'</dd></dl>';
 
+  // Keep the touch controls showing the same state as the keys.
+  scrub.value = Math.round(1000 * cKm / km[km.length-1]);
+  document.getElementById('sLeft').textContent = cKm.toFixed(2)+' km';
+  document.getElementById('sRight').textContent = km[km.length-1].toFixed(2)+' km';
+  document.getElementById('btnPlay').innerHTML = playing ? '\u275A\u275A Pause' : '\u25B6 Play';
+  document.querySelectorAll('[data-r]').forEach(b =>
+    b.classList.toggle('on', +b.dataset.r === rate));
+  document.getElementById('bClock').classList.toggle('on', mode === 'clock');
+  document.getElementById('bDist').classList.toggle('on', mode === 'distance');
+
   const m = mats[sel], ours = ourKm(m.pos), moved = (ours - ourKm(m.home))*1000;
   document.getElementById('card').innerHTML =
     '<h2>'+m.name+'</h2><div class="off">mat '+(sel+1)+' of 10 &middot; official '+
@@ -341,6 +403,40 @@ function step(metres){
   m.pos = posAtKm(Math.max(0, Math.min(km[km.length-1], target)));
   draw();
 }
+// Every key below also has a button under the map, so the page works on a
+// phone. Both go through these functions rather than duplicating the logic.
+function moveMe(metres){
+  cursor = posAtKm(Math.max(0, Math.min(km[km.length-1], ourKm(cursor) + metres/1000)));
+  const n = nearestMat(cursor), f = n !== sel;
+  if (f) sel = n;
+  draw(f);
+}
+function gotoMat(d){ sel = (sel + d + mats.length) % mats.length;
+  cursor = mats[sel].pos; draw(true); }
+function setMode(m){ mode = m;
+  mats.forEach(x => x.pos = (m === 'clock' ? x.home : x.byDist)); draw(); }
+const ACT = {
+  back100:()=>moveMe(-100), back10:()=>moveMe(-10),
+  fwd10:()=>moveMe(10),     fwd100:()=>moveMe(100),
+  play:()=>play(!playing),
+  prevmat:()=>gotoMat(-1),  nextmat:()=>gotoMat(1),
+  matback:()=>step(-5),     matfwd:()=>step(5),
+  clock:()=>setMode('clock'), dist:()=>setMode('distance'),
+  centre:()=>map.panTo(route[Math.round(cursor)])
+};
+document.querySelectorAll('[data-a]').forEach(b =>
+  b.addEventListener('click', () => ACT[b.dataset.a]()));
+document.querySelectorAll('[data-r]').forEach(b =>
+  b.addEventListener('click', () => { rate = +b.dataset.r; draw(); }));
+// The slider is the one control that beats the arrows on a touch screen:
+// it covers the whole 10 km in one drag.
+scrub.addEventListener('input', () => {
+  playing = false;
+  cursor = posAtKm(km[km.length-1] * (+scrub.value / 1000));
+  const n = nearestMat(cursor), f = n !== sel;
+  if (f) sel = n;
+  draw(f);
+});
 addEventListener('keydown', e => {
   const k = e.key;
   let follow = false;
