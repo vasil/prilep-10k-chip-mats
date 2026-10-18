@@ -25,6 +25,10 @@ body{margin:0;background:var(--paper);color:var(--ink);
    scrolled out of reach. They are a column of their own now, so they are
    always on screen next to the map. */
 .leftcol{min-height:0;overflow-y:auto;padding-right:4px}
+.shot{margin:0 0 14px}
+.shot img{width:100%;max-width:100%;display:block;border-radius:4px;
+  border:1px solid var(--line)}
+.shot figcaption{margin-top:7px;font-size:14px;color:var(--muted);line-height:1.45}
 h1{margin:0 0 6px;font-size:26px;letter-spacing:-.01em;text-wrap:balance}
 .sub{color:var(--muted);font-size:17px;max-width:70ch}
 .keys{margin-top:14px;font-size:15px;color:var(--muted);line-height:1.9}
@@ -80,6 +84,10 @@ tr.row{cursor:pointer}
 
 <div class="grid">
   <div class="leftcol">
+<figure class="shot">
+  <img src="medal-137.jpg" alt="Bib number 137, Васил, 10 KM, Че Трчаме 2026, lying on a wooden table with the race medal on its lanyard across it.">
+  <figcaption>Bib 137 &middot; 1:41:59 &middot; Че Трчаме, Прилеп, 18 October 2026</figcaption>
+</figure>
 <h1>Chip Mats on the Route</h1>
 <div class="sub">The black dot is you. Walk it along the route and the nearest mat is
 selected as you pass. Ten official splits, four physical mats.</div>
