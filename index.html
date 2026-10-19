@@ -100,15 +100,13 @@ tr.row{cursor:pointer}
 /* The replay state is the control: it says what is happening and starts or
    stops it, at the size it was already being read at. One button, in the
    one card that is on screen on every device. */
-.playbtn{display:block;width:100%;text-align:left;cursor:pointer;
-  font:700 23px/1 inherit;color:var(--ink);background:var(--panel);
+.playbtn{display:block;width:100%;text-align:center;cursor:pointer;
+  font:700 30px/1 inherit;color:var(--ink);background:var(--panel);
   border:1px solid var(--line);border-bottom-width:3px;border-radius:9px;
   min-height:56px;padding:0 14px;touch-action:manipulation;
   -webkit-tap-highlight-color:transparent}
 .playbtn.on{background:var(--sel);border-color:var(--sel);color:#1b1206}
 .playbtn:active{transform:translateY(1px)}
-.playbtn .rate{font-size:16px;font-weight:600;color:var(--muted);margin-left:8px}
-.playbtn.on .rate{color:#1b1206;opacity:.75}
 /* A phone has one screen and one thumb: it gets the slider and Play, and
    nothing else. The rest of the controls, and metres per second, are a
    desktop luxury. */
@@ -360,9 +358,9 @@ function draw(follow){
     '<dt>Pace there</dt><dd class="big">'+pace(cV)+'</dd>'+
     '<dt class="deskonly">Speed there</dt><dd class="deskonly">'+cV.toFixed(2)+' m/s</dd>'+
     '<dt>Replay</dt><dd><button type="button" data-a="play" id="btnPlay"'+
-        ' class="playbtn'+(playing?' on':'')+'">'+
-        (playing ? '❙❙ Playing' : '▶ Play')+
-        '<span class="rate deskonly">&times;'+rate+'</span></button></dd></dl>';
+        ' class="playbtn'+(playing?' on':'')+'"'+
+        ' aria-label="'+(playing?'Pause':'Play')+'">'+
+        (playing ? '❙❙' : '▶')+'</button></dd></dl>';
 
   // Keep the touch controls showing the same state as the keys.
   scrub.value = Math.round(1000 * cKm / km[km.length-1]);
