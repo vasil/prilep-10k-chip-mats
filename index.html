@@ -226,7 +226,10 @@ function posAtKm(target){
 mats.forEach(m => { m.byDist = posAtKm(m.official); });
 let mode = 'clock';
 
-const map = L.map('map', {keyboard:false});
+// zoomSnap:0 lets the fit land on a fractional zoom. With the default snap
+// of 1, fitBounds rounds DOWN to a whole zoom level and can throw away most
+// of a doubling, which is where the wide empty strips either side came from.
+const map = L.map('map', {keyboard:false, zoomSnap:0, zoomDelta:0.5});
 // Served over https from Pages, so OSM's own tile server is happy to answer
 // — unlike the local file:// copy, which has its tiles baked in beside it.
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -235,7 +238,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   }).addTo(map);
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 L.polyline(route, {color:css('--route'), weight:5, opacity:.9}).addTo(map);
-map.fitBounds(L.latLngBounds(route).pad(0.08));
+map.fitBounds(L.latLngBounds(route).pad(0.02));
 
 // A mat is drawn across the road, so it needs the direction of travel at that
 // point: take the heading from the fixes a little either side and turn it 90°.
@@ -501,7 +504,7 @@ map.on('zoomend', draw);
 // so re-measure and re-fit the route to the full-height map.
 function refit(){
   map.invalidateSize(false);
-  map.fitBounds(L.latLngBounds(route).pad(0.05));
+  map.fitBounds(L.latLngBounds(route).pad(0.02));
   draw();
 }
 // Leaflet measures its container once. Anything that changes the layout after
@@ -513,7 +516,7 @@ new ResizeObserver(() => {
   map.invalidateSize(false);
   if (!fitted && document.getElementById('map').clientHeight > 50) {
     fitted = true;
-    map.fitBounds(L.latLngBounds(route).pad(0.05));
+    map.fitBounds(L.latLngBounds(route).pad(0.02));
   }
   draw();
 }).observe(document.getElementById('map'));
