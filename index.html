@@ -97,6 +97,18 @@ tr.row{cursor:pointer}
   min-height:46px;min-width:48px;padding:0 13px;cursor:pointer;
   touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .bar button:active{transform:translateY(1px)}
+/* The replay state is the control: it says what is happening and starts or
+   stops it, at the size it was already being read at. One button, in the
+   one card that is on screen on every device. */
+.playbtn{display:block;width:100%;text-align:left;cursor:pointer;
+  font:700 23px/1 inherit;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line);border-bottom-width:3px;border-radius:9px;
+  min-height:56px;padding:0 14px;touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent}
+.playbtn.on{background:var(--sel);border-color:var(--sel);color:#1b1206}
+.playbtn:active{transform:translateY(1px)}
+.playbtn .rate{font-size:16px;font-weight:600;color:var(--muted);margin-left:8px}
+.playbtn.on .rate{color:#1b1206;opacity:.75}
 /* A phone has one screen and one thumb: it gets the slider and Play, and
    nothing else. The rest of the controls, and metres per second, are a
    desktop luxury. */
@@ -140,12 +152,11 @@ do the same and more.</div>
   <input id="scrub" type="range" min="0" max="1000" step="1" value="0"
          aria-label="Position on the route">
   <div class="scrubrow"><span id="sLeft">0.00 km</span><span id="sRight"></span></div>
-  <div class="bar">
-    <button type="button" class="deskonly" data-a="back100" aria-label="100 metres back">&#9668;&#9668;</button>
-    <button type="button" class="deskonly" data-a="back10" aria-label="10 metres back">&#9668;</button>
-    <button type="button" data-a="play" id="btnPlay">&#9654; Play</button>
-    <button type="button" class="deskonly" data-a="fwd10" aria-label="10 metres on">&#9658;</button>
-    <button type="button" class="deskonly" data-a="fwd100" aria-label="100 metres on">&#9658;&#9658;</button>
+  <div class="bar deskonly">
+    <button type="button" data-a="back100" aria-label="100 metres back">&#9668;&#9668;</button>
+    <button type="button" data-a="back10" aria-label="10 metres back">&#9668;</button>
+    <button type="button" data-a="fwd10" aria-label="10 metres on">&#9658;</button>
+    <button type="button" data-a="fwd100" aria-label="100 metres on">&#9658;&#9658;</button>
   </div>
   <div class="bar deskonly">
     <span class="lbl">Speed</span>
@@ -348,14 +359,15 @@ function draw(follow){
         .toISOString().substr(11,8)+'</dd>'+
     '<dt>Pace there</dt><dd class="big">'+pace(cV)+'</dd>'+
     '<dt class="deskonly">Speed there</dt><dd class="deskonly">'+cV.toFixed(2)+' m/s</dd>'+
-    '<dt>Replay</dt><dd>'+(playing ? '▶ playing' : '❙❙ paused')+
-        '<span class="deskonly"> &times;'+rate+'</span></dd></dl>';
+    '<dt>Replay</dt><dd><button type="button" data-a="play" id="btnPlay"'+
+        ' class="playbtn'+(playing?' on':'')+'">'+
+        (playing ? '❙❙ Playing' : '▶ Play')+
+        '<span class="rate deskonly">&times;'+rate+'</span></button></dd></dl>';
 
   // Keep the touch controls showing the same state as the keys.
   scrub.value = Math.round(1000 * cKm / km[km.length-1]);
   document.getElementById('sLeft').textContent = cKm.toFixed(2)+' km';
   document.getElementById('sRight').textContent = km[km.length-1].toFixed(2)+' km';
-  document.getElementById('btnPlay').innerHTML = playing ? '\u275A\u275A Pause' : '\u25B6 Play';
   document.querySelectorAll('[data-r]').forEach(b =>
     b.classList.toggle('on', +b.dataset.r === rate));
   document.getElementById('bClock').classList.toggle('on', mode === 'clock');
@@ -458,10 +470,15 @@ const ACT = {
   clock:()=>setMode('clock'), dist:()=>setMode('distance'),
   centre:()=>map.panTo(route[Math.round(cursor)])
 };
-document.querySelectorAll('[data-a]').forEach(b =>
-  b.addEventListener('click', () => ACT[b.dataset.a]()));
-document.querySelectorAll('[data-r]').forEach(b =>
-  b.addEventListener('click', () => { rate = +b.dataset.r; draw(); }));
+// Delegated, not bound per button: the play button lives inside a card that
+// draw() rewrites on every frame, so anything bound directly to it would be
+// thrown away the first time the page redrew.
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-a]');
+  if (a) { ACT[a.dataset.a](); return; }
+  const r = e.target.closest('[data-r]');
+  if (r) { rate = +r.dataset.r; draw(); }
+});
 // The slider is the one control that beats the arrows on a touch screen:
 // it covers the whole 10 km in one drag.
 scrub.addEventListener('input', () => {
