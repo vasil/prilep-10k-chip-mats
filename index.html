@@ -340,7 +340,11 @@ function draw(follow){
   document.getElementById('here').innerHTML =
     '<dl><dt>On the route</dt><dd class="big">'+cKm.toFixed(2)+' km</dd>'+
     '<dt>Into the recording</dt><dd>'+hms(cT)+'</dd>'+
-    '<dt>Clock</dt><dd>'+new Date(Date.UTC(2026,9,18,7,0,12)+cT*1000)
+    // The recording starts at 07:00:12 UTC, which is 09:00:12 in Prilep —
+    // CEST, UTC+2, on 18 October. toISOString() prints UTC, so the base is
+    // given as local wall time and formatted as if it were UTC. That keeps
+    // it right whatever time zone the reader's own phone is set to.
+    '<dt>Clock, Prilep</dt><dd>'+new Date(Date.UTC(2026,9,18,9,0,12)+cT*1000)
         .toISOString().substr(11,8)+'</dd>'+
     '<dt>Pace there</dt><dd class="big">'+pace(cV)+'</dd>'+
     '<dt class="deskonly">Speed there</dt><dd class="deskonly">'+cV.toFixed(2)+' m/s</dd>'+
