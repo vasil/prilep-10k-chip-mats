@@ -97,6 +97,10 @@ tr.row{cursor:pointer}
   min-height:46px;min-width:48px;padding:0 13px;cursor:pointer;
   touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .bar button:active{transform:translateY(1px)}
+/* A phone has one screen and one thumb: it gets the slider and Play, and
+   nothing else. The rest of the controls, and metres per second, are a
+   desktop luxury. */
+@media (max-width:1000px){ .deskonly{display:none !important} }
 .bar button.on{background:var(--sel);border-color:var(--sel);color:#1b1206}
 #scrub{width:100%;height:40px;margin:12px 0 0;accent-color:var(--sel);
   touch-action:pan-y}
@@ -113,7 +117,8 @@ tr.row{cursor:pointer}
 <h1>Chip Mats on the Route</h1>
 <div class="sub">The black dot is you. Walk it along the route and the nearest mat is
 selected as you pass. Ten official splits, four physical mats.
-Drag the slider or tap the buttons under the map &mdash; the keys below do the same thing.</div>
+Drag the slider or press Play under the map; on a computer the keys below
+do the same and more.</div>
 <div class="keys">
 <div><kbd>Space</kbd> play the race back<br><kbd>1</kbd> &times;1
 <kbd>2</kbd> &times;10 <kbd>3</kbd> &times;60 <kbd>4</kbd> &times;300</div>
@@ -136,13 +141,13 @@ Drag the slider or tap the buttons under the map &mdash; the keys below do the s
          aria-label="Position on the route">
   <div class="scrubrow"><span id="sLeft">0.00 km</span><span id="sRight"></span></div>
   <div class="bar">
-    <button type="button" data-a="back100" aria-label="100 metres back">&#9668;&#9668;</button>
-    <button type="button" data-a="back10" aria-label="10 metres back">&#9668;</button>
+    <button type="button" class="deskonly" data-a="back100" aria-label="100 metres back">&#9668;&#9668;</button>
+    <button type="button" class="deskonly" data-a="back10" aria-label="10 metres back">&#9668;</button>
     <button type="button" data-a="play" id="btnPlay">&#9654; Play</button>
-    <button type="button" data-a="fwd10" aria-label="10 metres on">&#9658;</button>
-    <button type="button" data-a="fwd100" aria-label="100 metres on">&#9658;&#9658;</button>
+    <button type="button" class="deskonly" data-a="fwd10" aria-label="10 metres on">&#9658;</button>
+    <button type="button" class="deskonly" data-a="fwd100" aria-label="100 metres on">&#9658;&#9658;</button>
   </div>
-  <div class="bar">
+  <div class="bar deskonly">
     <span class="lbl">Speed</span>
     <button type="button" data-r="1">&times;1</button>
     <button type="button" data-r="10">&times;10</button>
@@ -150,7 +155,7 @@ Drag the slider or tap the buttons under the map &mdash; the keys below do the s
     <button type="button" data-r="300">&times;300</button>
     <button type="button" data-a="centre">Centre</button>
   </div>
-  <div class="bar">
+  <div class="bar deskonly">
     <span class="lbl">Mat</span>
     <button type="button" data-a="prevmat" aria-label="previous mat">&#8592;</button>
     <button type="button" data-a="nextmat" aria-label="next mat">&#8594;</button>
@@ -293,6 +298,14 @@ function ourKm(pos){
   return km[i] + f*(km[i+1]-km[i]);
 }
 const sgn = v => (v>=0?'+':'') + v.toFixed(2);
+// Pace reads better than m/s for a race: 0.19 m/s means nothing at a glance,
+// 87:43 per kilometre says "he was standing at the bar". Below walking speed
+// the figure stops being useful, so it is not printed at all.
+function pace(v){
+  if (!(v > 0.15)) return '\u2014';
+  const s = Math.round(1000/v);
+  return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+' /km';
+}
 const lerp = (arr,pos) => { const i=Math.floor(pos), f=pos-i;
   return i>=arr.length-1 ? arr[arr.length-1] : arr[i]+f*(arr[i+1]-arr[i]); };
 function hms(sec){ sec=Math.round(sec);
@@ -326,8 +339,10 @@ function draw(follow){
     '<dt>Into the recording</dt><dd>'+hms(cT)+'</dd>'+
     '<dt>Clock</dt><dd>'+new Date(Date.UTC(2026,9,18,7,0,12)+cT*1000)
         .toISOString().substr(11,8)+'</dd>'+
-    '<dt>Speed there</dt><dd>'+cV.toFixed(2)+' m/s</dd>'+
-    '<dt>Replay</dt><dd>'+(playing ? '▶ playing' : '❙❙ paused')+' &times;'+rate+'</dd></dl>';
+    '<dt>Pace there</dt><dd class="big">'+pace(cV)+'</dd>'+
+    '<dt class="deskonly">Speed there</dt><dd class="deskonly">'+cV.toFixed(2)+' m/s</dd>'+
+    '<dt>Replay</dt><dd>'+(playing ? '▶ playing' : '❙❙ paused')+
+        '<span class="deskonly"> &times;'+rate+'</span></dd></dl>';
 
   // Keep the touch controls showing the same state as the keys.
   scrub.value = Math.round(1000 * cKm / km[km.length-1]);
