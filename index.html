@@ -507,7 +507,13 @@ addEventListener('keydown', e => {
   else if (k === 'r' || k === 'R') { mode='clock'; mats.forEach(m => m.pos = m.home); }
   else if (k === 'd' || k === 'D') { mode='distance'; mats.forEach(m => m.pos = m.byDist); }
   else if (k === 'c' || k === 'C') { mode='clock';    mats.forEach(m => m.pos = m.home); }
-  else if (k === ' ') { play(!playing); }
+  else if (k === ' ') {
+    // The replay control is a real button now. If it has the focus — and it
+    // does, right after you click it — the browser turns Space into a click
+    // on it as well, and the two toggles cancel out. Let the button have it.
+    if (e.target && e.target.closest && e.target.closest('button')) return;
+    play(!playing);
+  }
   else if (k === '1') { rate = 1; }
   else if (k === '2') { rate = 10; }
   else if (k === '3') { rate = 60; }
